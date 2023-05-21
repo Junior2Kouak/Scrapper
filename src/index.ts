@@ -1,7 +1,6 @@
 import puppeteer from "puppeteer";
 
-async function Run({ city = "marseille"}) {
-  var prompt = "evenements " + city;
+async function Run({ city = "Lyon"}) {
   // Instancier le navigateur
   const browser = await puppeteer.launch({ headless: false });
   // Créer une page
@@ -16,60 +15,53 @@ async function Run({ city = "marseille"}) {
   await page.waitForSelector(searchResultSelector);
   await page.click(searchResultSelector);
 
-  const titles = await page.$$("div.bVj5Zb");
-  const adress = await page.$$("div.TCYkdd");
-  const dates = await page.$$("div.t3gkGd");
-  console.log(titles);
-  const len = titles.length;
 
-  // Afficher le texte et l'URL de chaque lien
-  // const eventsHref = await page.$$("a.ct5Ked");
-  // for (let i = 0; i < len; i++) {
-  //   const url = await eventsHref[i].evaluate((node) => node.href);
-  //   console.log(url);
-  // }
     const eventsHref = await page.$$("a.ct5Ked");
     const eventsHrefArray = await Promise.all(
       eventsHref.map((link) => link.evaluate((node) => node.href))
     );
-  console.log(eventsHrefArray);
-  console.log(eventsHrefArray.length);
-  console.log("🚀 ~ file: index.ts:59 ~ Run ~ eventsHref:", eventsHref)
-
-
-  for (let i = 0; i < len; i++) {
+  
+  var results = []
+  console.log(eventsHrefArray)
+  for (let i = 0; i < eventsHrefArray.length; i++) {
     page.goto(eventsHrefArray[i]);
-    // titles[i].click();
     try {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const data = await page.evaluate(async () => {
+        const title = document.querySelector('.vk_h')?.textContent;
+        const date = document.querySelector('.vk_sh span')?.textContent;
+        const organiser ={
+          url: document.querySelector('.VECn4b')?.querySelector('a')?.href,
+          name: document.querySelector('.VECn4b')?.querySelector('a')?.textContent,
+          
+        } 
+        const address = document.querySelector('.VECn4b')?.querySelector('.vk_gy')?.textContent;
 
-    
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+        const ticketInfo = {
+          url: document.querySelectorAll('.VECn4b')[1]?.querySelector('a')?.href,
+          name: document.querySelectorAll('.VECn4b')[1]?.querySelector('a')?.textContent
 
-    const data = await page.evaluate(() => {
-      const title = document.querySelector('.vk_h')?.textContent;
-      const date = document.querySelector('.vk_sh span')?.textContent;
-      const organiser = document.querySelector('.VF0Pj VECn4b div a')?.textContent;
-      const address = document.querySelector('.VF0Pj VECn4b .vk_gy')?.textContent;
-      const url = document.querySelector('.VECn4b a')?.textContent;
-
-      return {
-          title,
-          date,
-          organiser,
-          address,
-          url,
-      };
-  });
-  console.log(data)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  
+        } 
+        return {
+            title,
+            date,
+            organiser,
+            address,
+            ticketInfo
+            // url,
+        };
+      });
+      console.log(data);
+      results.push(data)
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    catch (error) {
+      console.log("🚀 ~ file: index.ts:67 ~ Run ~ error:", error)
+    }
   }
- catch (error) {
-  console.log("🚀 ~ file: index.ts:67 ~ Run ~ error:", error)
-  
+  await browser.close();
+  console.log("🚀 ~ file: index.ts:56 ~ Run ~ results:", results)
+  return results;
+
 }
-
-
-  // console.log(JSON.stringify(container[0]));
-}}
-Run({});
+console.log("🚀 ~ file: index.ts:62 ~ Run({}):", Run({}))
